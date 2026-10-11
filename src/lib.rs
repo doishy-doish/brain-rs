@@ -53,7 +53,7 @@ impl Lookup {
         Lookup { keys }
     }
 
-    pub fn build(hashes: &[Vec<(String, f64)>]) -> Self {
+    pub fn build(hashes: &[HashDatum]) -> Self {
         let mut keys = Vec::new();
         let mut seen = HashSet::new();
         for h in hashes {
@@ -118,6 +118,7 @@ impl Default for Options {
 }
 
 pub type ProgressCallback = Arc<Mutex<Box<dyn FnMut(f64, usize) + Send>>>;
+pub type HashDatum = Vec<(String, f64)>;
 
 #[derive(Clone, Default)]
 pub struct TrainOpts {
@@ -317,17 +318,13 @@ impl NeuralNetwork {
         }
     }
 
-    pub fn train_hash(
-        &mut self,
-        data: &[(Vec<(String, f64)>, Vec<(String, f64)>)],
-        options: TrainOpts,
-    ) -> TrainStats {
+    pub fn train_hash(&mut self, data: &[(HashDatum, HashDatum)], options: TrainOpts) -> TrainStats {
         if self.input_lookup.is_none() {
-            let inputs: Vec<Vec<(String, f64)>> = data.iter().map(|d| d.0.clone()).collect();
+            let inputs: Vec<HashDatum> = data.iter().map(|d| d.0.clone()).collect();
             self.input_lookup = Some(Lookup::build(&inputs));
         }
         if self.output_lookup.is_none() {
-            let outputs: Vec<Vec<(String, f64)>> = data.iter().map(|d| d.1.clone()).collect();
+            let outputs: Vec<HashDatum> = data.iter().map(|d| d.1.clone()).collect();
             self.output_lookup = Some(Lookup::build(&outputs));
         }
         let arrays: Vec<(Vec<f64>, Vec<f64>)> = data
