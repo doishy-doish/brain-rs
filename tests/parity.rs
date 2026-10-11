@@ -12,7 +12,10 @@ fn xor_data() -> Vec<(Vec<f64>, Vec<f64>)> {
 }
 
 fn seeded(seed: u64) -> Options {
-    Options { seed, ..Default::default() }
+    Options {
+        seed,
+        ..Default::default()
+    }
 }
 
 fn close(a: f64, b: f64) -> bool {
@@ -26,7 +29,10 @@ fn lookup_build_preserves_first_seen_order() {
         vec![("b".to_string(), 6.0), ("c".to_string(), 7.0)],
     ];
     let lookup = Lookup::build(&hashes);
-    assert_eq!(lookup.keys, vec!["a".to_string(), "b".to_string(), "c".to_string()]);
+    assert_eq!(
+        lookup.keys,
+        vec!["a".to_string(), "b".to_string(), "c".to_string()]
+    );
 }
 
 #[test]
@@ -67,7 +73,11 @@ fn forward_pass_matches_original_weights() {
     ];
     for (input, want) in expected {
         let got = net.run(&input);
-        assert!(close(got[0], want), "input {input:?}: got {} want {want}", got[0]);
+        assert!(
+            close(got[0], want),
+            "input {input:?}: got {} want {want}",
+            got[0]
+        );
     }
 }
 
