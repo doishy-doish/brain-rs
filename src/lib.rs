@@ -318,7 +318,11 @@ impl NeuralNetwork {
         }
     }
 
-    pub fn train_hash(&mut self, data: &[(HashDatum, HashDatum)], options: TrainOpts) -> TrainStats {
+    pub fn train_hash(
+        &mut self,
+        data: &[(HashDatum, HashDatum)],
+        options: TrainOpts,
+    ) -> TrainStats {
         if self.input_lookup.is_none() {
             let inputs: Vec<HashDatum> = data.iter().map(|d| d.0.clone()).collect();
             self.input_lookup = Some(Lookup::build(&inputs));
