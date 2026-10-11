@@ -1,0 +1,9 @@
+[package]
+name = "brain-rs"
+version = "0.1.0"
+edition = "2021"
+description = "Rust port of harthur/brain neural network (parity-tested)"
+license = "MIT"
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
