@@ -3,6 +3,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
+type Vector = Vec<f64>;
+type Matrix = Vec<Vector>;
+
 fn sigmoid(x: f64) -> f64 {
     1.0 / (1.0 + (-x).exp())
 }
@@ -43,16 +46,11 @@ fn time_seed() -> u64 {
 #[derive(Clone, Debug)]
 pub struct Lookup {
     pub keys: Vec<String>,
-    index: HashMap<String, usize>,
 }
 
 impl Lookup {
     pub fn from_keys(keys: Vec<String>) -> Self {
-        let mut index = HashMap::new();
-        for (i, k) in keys.iter().enumerate() {
-            index.entry(k.clone()).or_insert(i);
-        }
-        Lookup { keys, index }
+        Lookup { keys }
     }
 
     pub fn build(hashes: &[Vec<(String, f64)>]) -> Self {
@@ -172,12 +170,12 @@ pub struct NeuralNetwork {
     pub output_lookup: Option<Lookup>,
     sizes: Vec<usize>,
     output_layer: usize,
-    biases: Vec<Vec<f64>>,
-    weights: Vec<Vec<Vec<f64>>>,
-    outputs: Vec<Vec<f64>>,
-    deltas: Vec<Vec<f64>>,
-    changes: Vec<Vec<Vec<f64>>>,
-    errors: Vec<Vec<f64>>,
+    biases: Matrix,
+    weights: Vec<Matrix>,
+    outputs: Matrix,
+    deltas: Matrix,
+    changes: Vec<Matrix>,
+    errors: Matrix,
     rng: Rng,
 }
 
@@ -294,7 +292,7 @@ impl NeuralNetwork {
         sizes.extend(hidden);
         sizes.push(output_size);
         self.initialize(&sizes);
-        let mut callback = options.callback;
+        let callback = options.callback;
         let mut error = 1.0;
         let mut i = 0;
         while i < iterations && error > error_thresh {
@@ -354,15 +352,20 @@ impl NeuralNetwork {
 
     fn calculate_deltas(&mut self, target: &[f64]) {
         for layer in (0..=self.output_layer).rev() {
+            if layer == self.output_layer {
+                let outputs = self.outputs[layer].clone();
+                for (node, (&output, &t)) in outputs.iter().zip(target.iter()).enumerate() {
+                    let error = t - output;
+                    self.errors[layer][node] = error;
+                    self.deltas[layer][node] = error * output * (1.0 - output);
+                }
+                continue;
+            }
             for node in 0..self.sizes[layer] {
                 let output = self.outputs[layer][node];
                 let mut error = 0.0;
-                if layer == self.output_layer {
-                    error = target[node] - output;
-                } else {
-                    for k in 0..self.deltas[layer + 1].len() {
-                        error += self.deltas[layer + 1][k] * self.weights[layer + 1][k][node];
-                    }
+                for k in 0..self.deltas[layer + 1].len() {
+                    error += self.deltas[layer + 1][k] * self.weights[layer + 1][k][node];
                 }
                 self.errors[layer][node] = error;
                 self.deltas[layer][node] = error * output * (1.0 - output);
@@ -395,15 +398,14 @@ impl NeuralNetwork {
         let mut sum = 0.0;
         for (idx, (input, target)) in data.iter().enumerate() {
             let output = self.run_input(input);
-            let actual;
-            let expected;
-            if binary {
-                actual = if output[0] > self.binary_thresh { 1 } else { 0 };
-                expected = target[0] as usize;
+            let (actual, expected) = if binary {
+                (
+                    if output[0] > self.binary_thresh { 1 } else { 0 },
+                    target[0] as usize,
+                )
             } else {
-                actual = argmax(&output);
-                expected = argmax(target);
-            }
+                (argmax(&output), argmax(target))
+            };
             if actual != expected {
                 stats.misclasses.push(idx);
             }
