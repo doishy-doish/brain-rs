@@ -252,7 +252,10 @@ impl NeuralNetwork {
     }
 
     pub fn run_hash(&mut self, input: &HashMap<String, f64>) -> HashMap<String, f64> {
-        let lookup = self.input_lookup.clone().unwrap_or_else(|| Lookup::from_keys(vec![]));
+        let lookup = self
+            .input_lookup
+            .clone()
+            .unwrap_or_else(|| Lookup::from_keys(vec![]));
         let array = lookup.to_array(input);
         let output = self.run_input(&array);
         match &self.output_lookup {
@@ -262,18 +265,31 @@ impl NeuralNetwork {
     }
 
     pub fn train(&mut self, data: &[(Vec<f64>, Vec<f64>)], options: TrainOpts) -> TrainStats {
-        let iterations = if options.iterations == 0 { 20000 } else { options.iterations };
-        let error_thresh = if options.error_thresh == 0.0 { 0.005 } else { options.error_thresh };
-        let log_period = if options.log_period == 0 { 10 } else { options.log_period };
+        let iterations = if options.iterations == 0 {
+            20000
+        } else {
+            options.iterations
+        };
+        let error_thresh = if options.error_thresh == 0.0 {
+            0.005
+        } else {
+            options.error_thresh
+        };
+        let log_period = if options.log_period == 0 {
+            10
+        } else {
+            options.log_period
+        };
         let learning_rate = options.learning_rate.unwrap_or(self.learning_rate);
         if learning_rate == 0.0 {
             self.learning_rate = 0.3;
         }
         let input_size = data[0].0.len();
         let output_size = data[0].1.len();
-        let hidden = self.hidden_sizes.clone().unwrap_or_else(|| {
-            vec![std::cmp::max(3, input_size / 2)]
-        });
+        let hidden = self
+            .hidden_sizes
+            .clone()
+            .unwrap_or_else(|| vec![std::cmp::max(3, input_size / 2)]);
         let mut sizes = vec![input_size];
         sizes.extend(hidden);
         sizes.push(output_size);
@@ -297,7 +313,10 @@ impl NeuralNetwork {
             }
             i += 1;
         }
-        TrainStats { error, iterations: i }
+        TrainStats {
+            error,
+            iterations: i,
+        }
     }
 
     pub fn train_hash(
@@ -396,15 +415,18 @@ impl NeuralNetwork {
                     _ => stats.false_pos += 1,
                 }
             }
-            let errs: Vec<f64> = output.iter().zip(target.iter()).map(|(o, t)| t - o).collect();
+            let errs: Vec<f64> = output
+                .iter()
+                .zip(target.iter())
+                .map(|(o, t)| t - o)
+                .collect();
             sum += mse(&errs);
         }
         stats.error = sum / data.len() as f64;
         if binary {
             stats.precision = stats.true_pos as f64 / (stats.true_pos + stats.false_pos) as f64;
             stats.recall = stats.true_pos as f64 / (stats.true_pos + stats.false_neg) as f64;
-            stats.accuracy =
-                (stats.true_neg + stats.true_pos) as f64 / data.len() as f64;
+            stats.accuracy = (stats.true_neg + stats.true_pos) as f64 / data.len() as f64;
         }
         stats
     }
@@ -468,7 +490,10 @@ impl NeuralNetwork {
             .get("layers")
             .and_then(|l| l.as_array())
             .ok_or_else(|| "missing layers array".to_string())?;
-        let input_flag = value.get("inputLookup").and_then(|v| v.as_bool()).unwrap_or(false);
+        let input_flag = value
+            .get("inputLookup")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
         let output_flag = value
             .get("outputLookup")
             .and_then(|v| v.as_bool())
@@ -483,7 +508,9 @@ impl NeuralNetwork {
         self.changes = vec![Vec::new(); size];
         self.errors = vec![Vec::new(); size];
         for (i, layer) in layers.iter().enumerate() {
-            let obj = layer.as_object().ok_or_else(|| "layer not an object".to_string())?;
+            let obj = layer
+                .as_object()
+                .ok_or_else(|| "layer not an object".to_string())?;
             let names: Vec<String> = obj.keys().cloned().collect();
             let has_zero = obj.contains_key("0");
             if i == 0 && (!has_zero || input_flag) {
